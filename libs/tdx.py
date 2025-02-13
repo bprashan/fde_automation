@@ -3,12 +3,13 @@ import shutil
 import os
 import fileinput
 import sys
+import time
 from utils import run_command, clone_repo, set_environment_variables, run_command_with_popen
 
 def update_tdx_config(tdx_dir):
     """Update the TDX_SETUP_ATTESTATION value in the setup-tdx-config file."""
     config_file = os.path.join(tdx_dir, "setup-tdx-config")
-    
+
     # Use fileinput to modify the file in place
     with fileinput.FileInput(config_file, inplace=True) as file:
         for line in file:
@@ -28,7 +29,7 @@ def clone_and_patch_tdx_repository():
     shutil.copy(patch_file, repo_name)
 
     # Apply the patch
-    run_command(["git", "apply", os.path.basename(patch_file)], cwd=repo_name)
+    run_command(["git", "apply", os.path.basename(patch_file)], cwd=f"{os.getcwd()}/{repo_name}")
 
 def create_directory(directory):
     """Create a directory if it doesn't exist."""
@@ -67,15 +68,15 @@ def generate_tmp_fde_key():
 def encrypt_image(fde_key, kbs_cert_path, base_image_path, key_id=None, kbs_url=None):
     """Encrypt the image using the FDE key and KBS certificate path."""
     command = [
-        "sudo", "tools/image/fde-encrypt_image.sh", "-k", fde_key, "-c", kbs_cert_path, "-p", base_image_path
+        "sudo", "./tools/image/fde-encrypt_image.sh", "-k", fde_key, "-c", kbs_cert_path, "-p", base_image_path
     ]
-    
+
     if key_id:
         command.extend(["-i", key_id])
     if kbs_url:
         command.extend(["-u", kbs_url])
-    
-    run_command(command)
+
+    run_command_with_popen(command)
 
 def execute_td_command(ssh_command, sleep_duration=120):
     """Execute the TD command and SSH command."""

@@ -2,6 +2,7 @@ import subprocess
 import os
 import sys
 import socket
+import shutil
 
 def run_command(command, shell=False, cwd=None, env=None):
     """Run a shell command."""
@@ -29,7 +30,7 @@ def run_command_with_popen(command, cwd=None):
             break
         if output:
             print(output.strip())
-    
+
     # Print any remaining errors
     stderr = process.communicate()[1]
     if stderr:
@@ -65,10 +66,10 @@ def clone_repo(repo_url, clone_dir, branch=None):
     """Clone a git repository into a specified directory."""
     if os.path.exists(clone_dir):
         shutil.rmtree(clone_dir)
-    
+
     clone_command = ["git", "clone"]
     if branch:
         clone_command.extend(["-b", branch])
     clone_command.extend([repo_url, clone_dir])
 
-    run_command(["git", "clone", repo_url, clone_dir])
+    run_command(clone_command)

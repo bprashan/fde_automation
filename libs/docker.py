@@ -1,4 +1,5 @@
 import subprocess
+import os
 
 def is_docker_installed():
     """Check if Docker is already installed."""
@@ -19,10 +20,10 @@ def install_docker():
     try:
         # Download the Docker installation script
         subprocess.run(["curl", "-fsSL", "https://get.docker.com", "-o", "get-docker.sh"], check=True)
-        
+
         # Run the Docker installation script
         subprocess.run(["sudo", "sh", "get-docker.sh"], check=True)
-        
+
         print("Docker installed successfully.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}")
@@ -34,15 +35,13 @@ def enable_docker_non_root():
         result = subprocess.run(["getent", "group", "docker"], capture_output=True, text=True)
         if result.returncode != 0:
             # Create the docker group if it doesn't exist
-            subprocess.run(["sudo", "groupadd", "docker"], check=True)
-        
+            subprocess.run(["sudo", "groupadd", "docker"], check=True, capture_output=True, text=True)
+
         # Add the current user to the docker group
         user = os.getenv("USER")
-        subprocess.run(["sudo", "usermod", "-aG", "docker", user], check=True)
-        
-        # Apply the new group membership
-        subprocess.run(["newgrp", "docker"], check=True)
-        
+        print(f"Adding {user} to the group")
+        subprocess.run(["sudo", "usermod", "-aG", "docker", user], check=True, capture_output=True, text=True)
+
         print("Docker enabled for non-root user.")
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}")

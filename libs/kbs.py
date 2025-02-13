@@ -1,6 +1,6 @@
 import subprocess
 import os
-from utils import get_ip_address, clone_repo
+from utils import get_ip_address, clone_repo, run_command_with_popen, set_environment_variables
 import shutil
 
 dir_name = "ita-kbs"
@@ -33,7 +33,7 @@ class KBSEnvConfig:
             file.write(content)
 
 def build_kbs():
-    run_command_with_popen("make docker", dir_name)
+    run_command_with_popen(['make', 'docker'], cwd=f"{os.getcwd()}/{dir_name}")
 
 def setup_directories():
     """Create the required directories."""
@@ -64,9 +64,9 @@ def run_kbs_container(env_file):
         "docker", "run", "-d", "--restart", "unless-stopped", "--name", "kbs",
         "--env-file", env_file,
         "--net=host",
-        "-v", f"{os.getcwd()}/data/certs:/etc/kbs/certs",
+        "-v", f"{os.getcwd()}/{dir_name}/data/certs:/etc/kbs/certs",
         "-v", "/etc/hosts:/etc/hosts",
-        "-v", f"{os.getcwd()}/data:/opt/kbs",
+        "-v", f"{os.getcwd()}/{dir_name}/data:/opt/kbs",
         "trustauthority/key-broker-service:v1.2.0"
     ]
     try:
@@ -95,7 +95,6 @@ def run_kbs():
     run_kbs_container(env_file_path)
     container_name = "kbs"
     get_docker_logs(container_name)
-    set_environment_variables(key="KBS_URL", data=f"{get_ip_address()}:9443}")
+    set_environment_variables(key="KBS_URL", data=f"{get_ip_address()}:9443")
     set_environment_variables(key="KBS_ENV", data=env_file_path)
     set_environment_variables(key="KBS_CERT_PATH", data=f"{os.getcwd()}/{dir_name}/data/certs/tls/tls.crt")
-

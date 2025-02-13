@@ -47,15 +47,15 @@ def setup_vault():
 
 def kill_existing_vault_process(port=8200):
     """Check if any process is listening on the specified port and kill it."""
-    check_command = ["lsof", "-i", f":{port}"]
+    check_command = ["sudo", "lsof", "-i", f":{port}"]
     check_process = subprocess.run(check_command, capture_output=True, text=True)
-    
+
     if check_process.returncode == 0:
         # Extract the PID and kill the process
         pid = re.search(r'\n(\S+)\s+(\d+)', check_process.stdout).group(2)
         kill_command = ["sudo", "kill", "-9", pid]
         kill_process = subprocess.run(kill_command, capture_output=True, text=True)
-        
+
         if kill_process.returncode == 0:
             print(f"Successfully killed the existing Vault process with PID: {pid}")
         else:
@@ -88,10 +88,10 @@ def get_vault_root_token(process):
 def login_to_vault(root_token):
     """Log in to Vault using the root token."""
     os.environ['VAULT_ADDR'] = 'http://127.0.0.1:8200'
-    
+
     login_command = ["vault", "login", root_token]
     login_process = subprocess.run(login_command, capture_output=True, text=True)
-    
+
     if login_process.returncode == 0:
         print("Successfully logged in to Vault.")
         return True
@@ -104,7 +104,7 @@ def enable_secrets_engine():
     """Enable the KV secrets engine at the specified path."""
     enable_command = ["vault", "secrets", "enable", "-path=keybroker", "kv"]
     enable_process = subprocess.run(enable_command, capture_output=True, text=True)
-    
+
     if enable_process.returncode == 0:
         print("Successfully enabled the KV secrets engine at path 'keybroker'.")
     else:
@@ -115,7 +115,7 @@ def setup_kms_environment():
     setup_vault()
     process = start_vault_server()
     root_token = get_vault_root_token(process)
-    
+
     if root_token:
         # print(f"Root Token: {root_token}")
         if login_to_vault(root_token):
@@ -123,6 +123,3 @@ def setup_kms_environment():
             set_environment_variables(key="VAULT_CLIENT_TOKEN", data=root_token)
     else:
         print("Root Token not found in the output.")
-
-# this is testing usage can be removed after final validation
-setup_kms_environment()

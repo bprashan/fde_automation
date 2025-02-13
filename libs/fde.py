@@ -17,17 +17,17 @@ def update_and_install_packages():
     # Run the install command
     run_command(install_command)
 
-def build_project(repo_name):
+def build_project():
     """Navigate to the full-disk-encryption directory and build the project."""
-    fde_dir = os.path.join(repo_name, "full-disk-encryption")
-    run_command(["make", "clean"], cwd=fde_dir)
-    run_command(["make"], cwd=fde_dir)
+    run_command(["make", "clean"])
+    run_command(["make"])
 
 def setup_fde_environment():
     repo_url = "https://github.com/IntelConfidentialComputing/TDXSampleUseCases.git"
     repo_name = repo_url.split('/')[-1].replace('.git', '')
     update_and_install_packages()
     clone_repo(repo_url, repo_name)
-    build_project(repo_name)
-
-
+    fde_dir = os.path.join(repo_name, "full-disk-encryption")
+    os.chdir(fde_dir)
+    print(f"Changed working directory to {os.getcwd()}")
+    build_project()
