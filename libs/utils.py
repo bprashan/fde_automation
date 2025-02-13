@@ -73,3 +73,12 @@ def clone_repo(repo_url, clone_dir, branch=None):
     clone_command.extend([repo_url, clone_dir])
 
     run_command(clone_command)
+
+def remove_host_from_known_hosts(host, port, known_hosts_file='/home/sdp/.ssh/known_hosts'):
+    # Construct the host string
+    host_string = f'[{host}]:{port}'
+
+    # Run the ssh-keygen command to remove the host entry
+    subprocess.run(['ssh-keygen', '-f', known_hosts_file, '-R', host_string])
+
+    print(f"Removed {host_string} from {known_hosts_file}")

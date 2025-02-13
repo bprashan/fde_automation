@@ -2,6 +2,7 @@ import subprocess
 import os
 from utils import get_ip_address, clone_repo, run_command_with_popen, set_environment_variables
 import shutil
+import time
 
 dir_name = "ita-kbs"
 
@@ -93,6 +94,7 @@ def run_kbs():
     config = KBSEnvConfig(TRUSTAUTHORITY_API_KEY="aeKQBT22ux7tZVB1uLyQN58Z1M9J0Bwg8LAQgLpl")
     config.create_env_file(env_file_path)
     run_kbs_container(env_file_path)
+    time.sleep(20)
     container_name = "kbs"
     get_docker_logs(container_name)
     set_environment_variables(key="KBS_URL", data=f"{get_ip_address()}:9443")

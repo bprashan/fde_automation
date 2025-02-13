@@ -38,6 +38,7 @@ def enable_docker_non_root():
             subprocess.run(["sudo", "groupadd", "docker"], check=True, capture_output=True, text=True)
 
         # Add the current user to the docker group
+        print("Adding user")
         user = os.getenv("USER")
         print(f"Adding {user} to the group")
         subprocess.run(["sudo", "usermod", "-aG", "docker", user], check=True, capture_output=True, text=True)

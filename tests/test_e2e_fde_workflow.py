@@ -2,7 +2,7 @@ import os
 import sys
 import pytest
 sys.path.append(os.path.join(os.path.dirname(__file__), '../libs'))
-from tdx import *
+from fde import *
 from kbs import run_kbs
 
 @pytest.mark.usefixtures("setup_environment")
@@ -11,7 +11,7 @@ class TestClass:
     def test_e2e_fde_workflow(self):
         # Add assertions to verify End to End FDE workflow
         run_kbs()
-
+        generate_rsa_key_pair()
         tmp_fde_key = generate_tmp_fde_key()
         base_image_path = os.environ["BASE_IMAGE_PATH"]
         kbs_cert_path =  os.environ["KBS_CERT_PATH"]
