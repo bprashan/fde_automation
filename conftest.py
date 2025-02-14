@@ -1,7 +1,6 @@
 import pytest
 import sys
 import os
-#from libs.utils import *
 sys.path.append(os.path.join(os.path.dirname(__file__), 'libs'))
 from rust import setup_rust
 from kms import setup_kms_environment

@@ -4,6 +4,7 @@ import pytest
 sys.path.append(os.path.join(os.path.dirname(__file__), '../libs'))
 from fde import *
 from kbs import run_kbs
+from utils import set_environment_variables
 
 @pytest.mark.usefixtures("setup_environment")
 class TestClass:
