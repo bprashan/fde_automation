@@ -1,6 +1,6 @@
 import subprocess
 import os
-from utils import get_ip_address, clone_repo, run_command_with_popen, set_environment_variables
+from utils import get_ip_address, clone_repo, run_command_with_popen, set_environment_variables, run_command
 import shutil
 import time
 
@@ -51,18 +51,18 @@ def setup_directories():
         os.makedirs(full_path, exist_ok=True)
         print(f"Directory created: {full_path}")
 
-def run_kbs_container(env_file):
-    """Run the KBS Docker container with the specified environment file."""
-    # Stop and remove any existing container named 'kbs'
+def run_kbs_container(env_file, container_name):
+    """Run the KBS Docker container with the specified environment file and container name."""
+    # Stop and remove any existing container with the specified name
     try:
-        subprocess.run(["docker", "rm", "-f", "kbs"], check=True)
-        print("Existing KBS Docker container removed.")
+        subprocess.run(["docker", "rm", "-f", container_name], check=True)
+        print(f"Existing Docker container '{container_name}' removed.")
     except subprocess.CalledProcessError:
-        print("No existing KBS Docker container to remove.")
+        print(f"No existing Docker container named '{container_name}' to remove.")
 
     # Define the Docker run command
     command = [
-        "docker", "run", "-d", "--restart", "unless-stopped", "--name", "kbs",
+        "docker", "run", "-d", "--restart", "unless-stopped", "--name", container_name,
         "--env-file", env_file,
         "--net=host",
         "-v", f"{os.getcwd()}/{dir_name}/data/certs:/etc/kbs/certs",
@@ -73,15 +73,14 @@ def run_kbs_container(env_file):
     try:
         # Run the command
         subprocess.run(command, check=True)
-        print("KBS Docker container started successfully.")
+        print(f"Docker container '{container_name}' started successfully.")
     except subprocess.CalledProcessError as e:
-        print(f"An error occurred while starting the KBS Docker container: {e}")
+        print(f"An error occurred while starting the Docker container '{container_name}': {e}")
 
 def get_docker_logs(container_name):
     """Fetch and display logs for the specified Docker container."""
     command = ["docker", "logs", container_name]
-    result = subprocess.run(command, capture_output=True, text=True, check=True)
-    print(result.stdout)
+    return run_command(command)
 
 def setup_kbs_environment():
     clone_repo("https://github.com/intel/trustauthority-kbs.git", dir_name, branch="v1.2.0")
@@ -93,10 +92,17 @@ def run_kbs():
     print(env_file_path)
     config = KBSEnvConfig(TRUSTAUTHORITY_API_KEY="aeKQBT22ux7tZVB1uLyQN58Z1M9J0Bwg8LAQgLpl")
     config.create_env_file(env_file_path)
-    run_kbs_container(env_file_path)
-    time.sleep(20)
     container_name = "kbs"
-    get_docker_logs(container_name)
-    set_environment_variables(key="KBS_URL", data=f"{get_ip_address()}:9443")
+    run_kbs_container(env_file_path, container_name)
+    time.sleep(20)
+    logs = get_docker_logs(container_name)
+
+# Check for error messages in logs
+    error_messages = ["error", "permission denied", "invalid token", "key create failed"]
+    if any(error_message in logs for error_message in error_messages):
+        print("Error detected in Docker logs. Exiting execution.")
+        return False
+    set_environment_variables(key="KBS_URL", data=f"https://{get_ip_address()}:9443")
     set_environment_variables(key="KBS_ENV", data=env_file_path)
     set_environment_variables(key="KBS_CERT_PATH", data=f"{os.getcwd()}/{dir_name}/data/certs/tls/tls.crt")
+    return True
