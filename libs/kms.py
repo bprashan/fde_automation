@@ -29,11 +29,9 @@ def setup_vault():
         subprocess.run(["sudo", "apt-get", "install", "-y", "gnupg", "software-properties-common"], check=True)
 
         # Add the HashiCorp GPG key
-        subprocess.run(["wget", "-O-", "https://apt.releases.hashicorp.com/gpg"], check=True)
-        subprocess.run(["gpg", "--dearmor", "-o", "/usr/share/keyrings/hashicorp-archive-keyring.gpg"], check=True)
+        subprocess.run("curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor --batch --yes -o /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null", shell=True, capture_output=True, text=True)
 
-        # Add the official HashiCorp Linux repository
-        subprocess.run(["sudo", "apt-add-repository", "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main"], check=True)
+        subprocess.run('echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list', shell=True, capture_output=True, text=True)
 
         # Update the package list again
         subprocess.run(["sudo", "apt-get", "update"], check=True)

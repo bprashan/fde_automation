@@ -8,7 +8,7 @@ def update_and_install_packages():
     update_command = ["sudo", "apt", "update"]
     install_command = [
         "sudo", "apt", "install", "-y", "build-essential", "pkg-config", "gpg", "wget", "openssl",
-        "libcryptsetup-dev", "python3-venv", "libtdx-attest-dev"
+        "libcryptsetup-dev", "python3-venv", "libtdx-attest-dev", "sshpass"
     ]
 
     # Run the update command

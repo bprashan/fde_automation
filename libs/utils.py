@@ -37,18 +37,24 @@ def run_command_with_popen(command, cwd=None):
         print(stderr.strip())
 
 def set_environment_variables(key=None, data=None):
-    """Set environment variables for a specific key and from a string of key-value pairs."""
+    """Set environment variables for a specific key and from a string of key-value pairs.
+       Returns True if the value is not empty, False otherwise."""
     if key and data:
         os.environ[key] = data.strip('"')
         print(f"Set environment variable: {key}={data.strip('\"')}")
+        return bool(data.strip('"'))
 
     if data:
         elements = data.split()
         for element in elements:
             if '=' in element:
                 key, value = element.split('=', 1)
+                if not value.strip('"'):
+                    print(f"Value for {key} is empty.")
+                    return False
                 os.environ[key] = value.strip('"')
                 print(f"Set environment variable: {key}={value.strip('\"')}")
+        return True
 
 def get_ip_address():
     """Retrieve the actual IP address of the machine."""
@@ -82,3 +88,35 @@ def remove_host_from_known_hosts(host, port, known_hosts_file='/home/sdp/.ssh/kn
     subprocess.run(['ssh-keygen', '-f', known_hosts_file, '-R', host_string])
 
     print(f"Removed {host_string} from {known_hosts_file}")
+
+def delete_file(file_path):
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            print(f"Successfully deleted the file: {file_path}")
+        except Exception as e:
+            print(f"Failed to delete the file: {file_path}. Reason: {e}")
+    else:
+        print(f"The file does not exist: {file_path}")
+
+def delete_files_in_subdirectories(directory):
+    """Deletes all files inside the specified directory and its subdirectories without deleting the folders."""
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            try:
+                os.remove(file_path)
+                print(f"Deleted file: {file_path}")
+            except Exception as e:
+                print(f"Error deleting file {file_path}: {e}")
+
+def delete_directory_with_sudo(directory_path):
+    if os.path.exists(directory_path):
+        try:
+            # Execute the command to remove the directory with sudo
+            run_command(['sudo', 'rm', '-rf', directory_path])
+            print(f"Successfully deleted the directory: {directory_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to delete the directory: {directory_path}. Reason: {e}")
+    else:
+        print(f"The directory does not exist: {directory_path}")
