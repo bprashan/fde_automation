@@ -82,3 +82,24 @@ def remove_host_from_known_hosts(host, port, known_hosts_file='/home/sdp/.ssh/kn
     subprocess.run(['ssh-keygen', '-f', known_hosts_file, '-R', host_string])
 
     print(f"Removed {host_string} from {known_hosts_file}")
+
+def delete_file(file_path):
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+            print(f"Successfully deleted the file: {file_path}")
+        except Exception as e:
+            print(f"Failed to delete the file: {file_path}. Reason: {e}")
+    else:
+        print(f"The file does not exist: {file_path}")
+
+def delete_directory_with_sudo(directory_path):
+    if os.path.exists(directory_path):
+        try:
+            # Execute the command to remove the directory with sudo
+            run_command(['sudo', 'rm', '-rf', directory_path])
+            print(f"Successfully deleted the directory: {directory_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to delete the directory: {directory_path}. Reason: {e}")
+    else:
+        print(f"The directory does not exist: {directory_path}")
