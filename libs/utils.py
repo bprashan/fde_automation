@@ -4,11 +4,11 @@ import sys
 import socket
 import shutil
 
-def run_command(command, shell=False, cwd=None, env=None):
+def run_command(command, shell=False, cwd=None):
     """Run a shell command."""
     try:
         print(f"Executing command : {command}")
-        result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True, cwd=cwd, env=env)
+        result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True, cwd=cwd)
         print(result.stdout.strip())
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
@@ -21,18 +21,17 @@ def run_command(command, shell=False, cwd=None, env=None):
 def run_command_with_popen(command, cwd=None):
     """Run a command in a subprocess and print the output in real-time."""
     print(f"Executing command : {command}")
-    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    cur_process = subprocess.Popen(command, cwd=cwd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     # Print the output in real-time
     while True:
-        output = process.stdout.readline()
-        if output == '' and process.poll() is not None:
+        output = cur_process.stdout.readline()
+        if output == '' and cur_process.poll() is not None:
             break
         if output:
             print(output.strip())
-
     # Print any remaining errors
-    stderr = process.communicate()[1]
+    stderr = cur_process.communicate()[1]
     if stderr:
         print(stderr.strip())
 

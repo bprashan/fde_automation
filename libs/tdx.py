@@ -35,5 +35,5 @@ def create_td_image():
     script = "./create-td-image.sh"
 
     # Run the script with sudo
-    run_command_with_popen(["sudo", script], cwd=directory)
+    run_command_with_popen([f"sudo {script}"], cwd=f"{os.getcwd()}/{directory}")
     set_environment_variables(key="BASE_IMAGE_PATH", data=f"{os.getcwd()}/tdx/guest-tools/image/tdx-guest-ubuntu-24.04-generic.qcow2")

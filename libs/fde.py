@@ -56,7 +56,7 @@ def generate_tmp_fde_key():
 def encrypt_image(fde_key, kbs_cert_path, base_image_path, key_id=None, kbs_url=None):
     """Encrypt the image using the FDE key and KBS certificate path."""
     command = [
-        "sudo", "./tools/image/fde-encrypt_image.sh", "-k", fde_key, "-c", kbs_cert_path, "-p", base_image_path
+        "sudo", "bash", "-c", "tools/image/fde-encrypt_image.sh", "-k", fde_key, "-c", kbs_cert_path, "-p", base_image_path
     ]
 
     if key_id:
@@ -64,7 +64,7 @@ def encrypt_image(fde_key, kbs_cert_path, base_image_path, key_id=None, kbs_url=
     if kbs_url:
         command.extend(["-u", kbs_url])
 
-    run_command_with_popen(command)
+    run_command_with_popen(command, cwd=os.getcwd())
 
 def execute_td_command(ssh_command, sleep_duration=120):
     """Execute the TD command and SSH command."""
@@ -73,7 +73,7 @@ def execute_td_command(ssh_command, sleep_duration=120):
         'tdx/guest-tools/run_td.sh -d false -f tools/image/OVMF_FDE.fd'
     )
 
-    process = subprocess.Popen(td_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(['bash', '-c', td_command], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=os.getcwd())
 
     print(f"Sleeping for {sleep_duration} seconds to allow the TD guest to boot...")
     time.sleep(sleep_duration)

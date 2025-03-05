@@ -18,4 +18,7 @@ def setup_rust():
         subprocess.run("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y", shell=True)
 
         # Source the environment variables
-        subprocess.run("source $HOME/.cargo/env", shell=True)
+        subprocess.run("source $HOME/.cargo/env", shell=True, executable='/bin/bash', check=True)
+
+        # Verify installation
+        subprocess.run("cargo --version", shell=True, check=True)
