@@ -47,6 +47,23 @@ def enable_docker_non_root():
     except subprocess.CalledProcessError as e:
         print(f"An error occurred: {e}")
 
+def remove_docker_container(container_id):
+    """Stops and removes a Docker container."""
+    try:
+        # Stop the container
+        subprocess.run(['docker', 'stop', container_id], check=True)
+        print(f"Container {container_id} has been stopped.")
+    except subprocess.CalledProcessError:
+        print(f"Container {container_id} is not running or does not exist.")
+        return  # Exit the function if the container is not running or does not exist
+
+    try:
+        # Remove the container
+        subprocess.run(['docker', 'rm', container_id], check=True)
+        print(f"Container {container_id} has been removed.")
+    except subprocess.CalledProcessError as e:
+        print(f"An error occurred while removing the container: {e}")
+
 def setup_docker_environment():
     install_docker()
     enable_docker_non_root()

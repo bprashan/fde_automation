@@ -8,6 +8,8 @@ def check_rust_installed():
     except subprocess.CalledProcessError:
         print("Rust is not installed.")
         return False
+    except FileNotFoundError:
+        return False
 
 def setup_rust():
     # Check if Rust is already installed
