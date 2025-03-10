@@ -35,7 +35,8 @@ class KBSEnvConfig:
             file.write(content)
 
 def build_kbs():
-    run_command_with_popen(['make', 'docker'], cwd=f"{os.getcwd()}/{dir_name}")
+    run_command(['make', 'docker'], cwd=f"{os.getcwd()}/{dir_name}")
+    time.sleep(20)
 
 def setup_directories():
     """Create the required directories."""
