@@ -21,7 +21,7 @@ def run_command(command, shell=False, cwd=None, env=None):
 def run_command_with_popen(command, cwd=None):
     """Run a command in a subprocess and print the output in real-time."""
     print(f"Executing command : {command}")
-    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     # Print the output in real-time
     while True:

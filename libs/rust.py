@@ -19,3 +19,6 @@ def setup_rust():
 
         # Source the environment variables
         subprocess.run("source $HOME/.cargo/env", shell=True)
+
+        # Verify installation
+        subprocess.run("cargo --version", shell=True, check=True)
