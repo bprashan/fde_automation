@@ -3,6 +3,9 @@ import os
 from utils import get_ip_address, clone_repo, run_command_with_popen, set_environment_variables, run_command
 import shutil
 import time
+from queue import Queue, Empty
+import threading
+import psutil
 
 dir_name = "ita-kbs"
 container_name = "kbs"
@@ -35,7 +38,7 @@ class KBSEnvConfig:
             file.write(content)
 
 def build_kbs():
-    run_command_with_popen(['make', 'docker'], cwd=f"{os.getcwd()}/{dir_name}")
+    print("skip kbs build")
 
 def setup_directories():
     """Create the required directories."""
