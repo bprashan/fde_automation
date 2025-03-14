@@ -4,11 +4,11 @@ import sys
 import socket
 import shutil
 
-def run_command(command, shell=False, cwd=None, env=None):
+def run_command(command, shell=False, cwd=None):
     """Run a shell command."""
     try:
         print(f"Executing command : {command}")
-        result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True, cwd=cwd, env=env)
+        result = subprocess.run(command, shell=shell, check=True, capture_output=True, text=True, cwd=cwd)
         print(result.stdout.strip())
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
@@ -18,10 +18,10 @@ def run_command(command, shell=False, cwd=None, env=None):
         print(f"Error: {e.stderr}")
         sys.exit(1)
 
-def run_command_with_popen(command, cwd=None):
+def run_command_with_popen(command, cwd=None, shell=False):
     """Run a command in a subprocess and print the output in real-time."""
     print(f"Executing command : {command}")
-    process = subprocess.Popen(command, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    process = subprocess.Popen(command, cwd=cwd, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     # Print the output in real-time
     while True:
