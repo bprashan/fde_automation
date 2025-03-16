@@ -12,6 +12,7 @@ from utils import delete_directory_with_sudo, delete_files_in_subdirectories
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_environment():
+    print("Deleting TDXSampleUseCases directory")
     delete_directory_with_sudo("TDXSampleUseCases")
 
     print("Setting up Docker environment")
