@@ -32,7 +32,7 @@ class TestClass:
     def encrypt_and_verify_image(self):
         """Encrypts the image using the FDE key and verifies the TD encrypted image."""
         encrypt_image(os.environ["FDE_KEY"], os.environ["KBS_CERT_PATH"], os.environ["BASE_IMAGE_PATH"], os.environ["KEY_ID"], os.environ["KBS_URL"])
-        assert verify_td_encrypted_image(), "TD encrypted image verification failed"
+        return verify_td_encrypted_image()
 
     def run_command_with_unset_env(self, cmd, unset_var):
         original_env = os.environ.copy()
@@ -53,7 +53,7 @@ class TestClass:
         quote_set_success, keys_set_success = self.fetch_td_quote_and_encryption_keys()
         assert quote_set_success, "Failed to generate TD measurement"
         assert keys_set_success, "Failed to generate encryption keys"
-        self.encrypt_and_verify_image()
+        assert self.encrypt_and_verify_image(), "TD encrypted image verification failed"
 
     def test_fde_workflow_with_incorrect_vault_token(self):
         """Tests the FDE workflow with an incorrect Vault token."""
@@ -88,7 +88,7 @@ class TestClass:
         f"http://{get_ip_address()}:9443",  # Insecure URL
         "https://incorrect-url:9443"        # Incorrect URL
     ])
-    def test_fde_workflow_with_various_kbs_urls(self, kbs_url):
+    def test_fde_workflow_with_various_kbs_urls(self, kbs_url: str):
         """Tests the FDE workflow with various KBS URLs."""
         assert run_kbs(), "Failed to run KBS"
         original_kbs_url = os.environ["KBS_URL"]
@@ -131,17 +131,7 @@ class TestClass:
             result = login_to_vault(invalid_token)
             assert not result, f"Iteration {i+1}: Expected an error when trying to login with invalid token '{invalid_token}'"
 
-    @pytest.mark.parametrize("unset_var", [
-        "KBS_ENV",
-        "KBS_URL",
-        "KBS_CERT_PATH",
-        "MRSIGNERSEAM",
-        "MRSEAM",
-        "MRTD",
-        "QUOTE",
-        "SEAMSVN"
-    ])
-    def test_fde_workflow_with_missing_parameters_retrieve_encryption_key(self, unset_var):
+    def test_fde_workflow_with_missing_parameters_retrieve_encryption_key(self):
         cmd = [
             './retrieve_encryption_key.sh',
             '-k', os.environ.get("KBS_ENV", ""),
@@ -153,16 +143,11 @@ class TestClass:
             '-q', os.environ.get("QUOTE", ""),
             '-v', os.environ.get("SEAMSVN", "")
         ]
+        for unset_var in ["KBS_ENV", "KBS_URL", "KBS_CERT_PATH", "MRSIGNERSEAM", "MRSEAM", "MRTD", "QUOTE", "SEAMSVN"]:
+            returncode = self.run_command_with_unset_env(cmd, unset_var)
+            assert returncode != 0, "Retrieve encryption key command unexpectedly succeeded with {unset_var} unset"
 
-        returncode = self.run_command_with_unset_env(cmd, unset_var)
-        assert returncode != 0
-
-    @pytest.mark.parametrize("unset_var", [
-        "TMP_FDE_KEY",
-        "KBS_CERT_PATH",
-        "BASE_IMAGE_PATH"
-    ])
-    def test_fde_workflow_with_missing_parameters_encrypt_base_image(self, unset_var):
+    def test_fde_workflow_with_missing_parameters_encrypt_base_image(self):
         cmd = [
             'sudo', 'tools/image/fde-encrypt_image.sh',
             '-k', os.environ.get("TMP_FDE_KEY", ""),
@@ -170,5 +155,55 @@ class TestClass:
             '-p', os.environ.get("BASE_IMAGE_PATH", "")
         ]
 
-        returncode = self.run_command_with_unset_env(cmd, unset_var)
-        assert returncode != 0
+        for unset_var in ["TMP_FDE_KEY", "KBS_CERT_PATH", "BASE_IMAGE_PATH"]:
+            returncode = self.run_command_with_unset_env(cmd, unset_var)
+            assert returncode != 0, "Encrypt base image command unexpectedly succeeded with {unset_var} unset"
+
+    def test_fde_workflow_with_invalid_quote(self):
+        try:
+            assert run_kbs(), "Failed to run KBS"
+            self.encrypt_base_image()
+            quote = get_td_measurement()
+            assert set_environment_variables(data=quote), "Failed to generate TD measurement"
+            original_quote = os.environ["QUOTE"]
+            characters = string.ascii_letters + string.digits + '+/'
+            set_environment_variables("QUOTE", ''.join(random.choices(characters, k=6675)) + '=')
+            encryption_keys=retrieve_encryption_key()
+            assert not set_environment_variables(data=encryption_keys), "Expecting an error when retrieving encryption keys with invalid quote."
+        finally:
+            set_environment_variables("QUOTE", original_quote)
+
+    def test_fde_workflow_with_invalid_encryption_key(self):
+        try:
+            assert run_kbs(), "Failed to run KBS"
+            self.encrypt_base_image()
+            quote_set_success, keys_set_success = self.fetch_td_quote_and_encryption_keys()
+            assert quote_set_success, "Failed to generate TD measurement"
+            assert keys_set_success, "Failed to generate encryption keys"
+            original_fde_key = os.environ["FDE_KEY"]
+            characters = '0123456789abcdef'
+            set_environment_variables("FDE_KEY", ''.join(random.choices(characters, k=3588)))
+            assert not self.encrypt_and_verify_image(), "Expecting an error when encrypting base image with invalid FDE_KEY"
+        finally:
+            set_environment_variables("FDE_KEY", original_fde_key)
+
+    def test_fde_workflow_with_incorrect_cred_encrypted_image(self):
+        assert run_kbs(), "Failed to run KBS"
+        self.encrypt_base_image()
+        quote_set_success, keys_set_success = self.fetch_td_quote_and_encryption_keys()
+        assert quote_set_success, "Failed to generate TD measurement"
+        assert keys_set_success, "Failed to generate encryption keys"
+        encrypt_image(os.environ["FDE_KEY"], os.environ["KBS_CERT_PATH"], os.environ["BASE_IMAGE_PATH"], os.environ["KEY_ID"], os.environ["KBS_URL"])
+        assert not verify_td_encrypted_image("sshpass -p 456123 ssh -o StrictHostKeyChecking=no -p 10022 root@localhost 'sudo blkid'"), "Expecting an error when login to encrypted image with invalid credentials."
+        assert not verify_td_encrypted_image("sshpass -p 123456 ssh -o StrictHostKeyChecking=no -p 10022 root123@localhost 'sudo blkid'"), "Expecting an error when login to encrypted image with invalid credentials."
+
+    def test_fde_workflow_with_concurrent_encryption_attempt(self):
+        assert run_kbs(), "Failed to run KBS"
+        tmp_fde_key = generate_tmp_fde_key()
+        results = {}
+        for i in range(2):
+            results[f"run_{i}"] = encrypt_image(tmp_fde_key, os.environ["KBS_CERT_PATH"], os.environ["BASE_IMAGE_PATH"])
+        # Ensure only one run has a return code of 0
+        print(results)
+        success_count = sum(1 for result in results.values() if result == 0)
+        assert success_count != 1, "Expected exactly one successful run, but found {success_count}"

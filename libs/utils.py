@@ -16,7 +16,6 @@ def run_command(command, shell=False, cwd=None):
         print(f"Return code: {e.returncode}")
         print(f"Output: {e.stdout}")
         print(f"Error: {e.stderr}")
-        sys.exit(1)
 
 def run_command_with_popen(command, cwd=None, shell=False):
     """Run a command in a subprocess and print the output in real-time."""
@@ -35,6 +34,7 @@ def run_command_with_popen(command, cwd=None, shell=False):
     stderr = process.communicate()[1]
     if stderr:
         print(stderr.strip())
+    return process.returncode
 
 def set_environment_variables(key=None, data=None):
     """Set environment variables for a specific key and from a string of key-value pairs.
@@ -45,6 +45,9 @@ def set_environment_variables(key=None, data=None):
         return bool(data.strip('"'))
 
     if data:
+        if "error" in data.lower():
+            print("Error detected!")
+            return False
         elements = data.split()
         for element in elements:
             if '=' in element:

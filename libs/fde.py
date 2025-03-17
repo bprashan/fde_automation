@@ -123,10 +123,11 @@ def retrieve_encryption_key():
 
     return run_command(command)
 
-def verify_td_encrypted_image():
-    ssh_command = "sshpass -p 123456 ssh -o StrictHostKeyChecking=no -p 10022 root@localhost 'sudo blkid'"
+def verify_td_encrypted_image(ssh_command=None):
+    if not ssh_command:
+        ssh_command = "sshpass -p 123456 ssh -o StrictHostKeyChecking=no -p 10022 root@localhost 'sudo blkid'"
     result = execute_td_command(ssh_command)
-    if 'TYPE="crypto_LUKS"' in result:
+    if result is not None and 'TYPE="crypto_LUKS"' in result:
         return True
     else:
         return False
