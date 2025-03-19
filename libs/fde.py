@@ -64,7 +64,7 @@ def encrypt_image(fde_key, kbs_cert_path, base_image_path, key_id=None, kbs_url=
     if kbs_url:
         command.extend(["-u", kbs_url])
 
-    run_command_with_popen(command)
+    return run_command_with_popen(command)
 
 def execute_td_command(ssh_command, sleep_duration=120):
     """Execute the TD command and SSH command."""

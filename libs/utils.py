@@ -3,6 +3,8 @@ import os
 import sys
 import socket
 import shutil
+import psutil
+import time
 
 def run_command(command, shell=False, cwd=None):
     """Run a shell command."""
@@ -16,6 +18,7 @@ def run_command(command, shell=False, cwd=None):
         print(f"Return code: {e.returncode}")
         print(f"Output: {e.stdout}")
         print(f"Error: {e.stderr}")
+        return e.stderr
 
 def run_command_with_popen(command, cwd=None, shell=False):
     """Run a command in a subprocess and print the output in real-time."""
@@ -123,3 +126,38 @@ def delete_directory_with_sudo(directory_path):
             print(f"Failed to delete the directory: {directory_path}. Reason: {e}")
     else:
         print(f"The directory does not exist: {directory_path}")
+
+def find_and_kill_process(file_path):
+    # Iterate over all running processes
+    for proc in psutil.process_iter(['pid', 'name']):
+        try:
+            # Check if the process has the file open
+            for file in proc.open_files():
+                if file.path == file_path:
+                    print(f"Killing process {proc.info['name']} (PID: {proc.info['pid']})")
+                    proc.kill()
+                    return
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    print(f"No process found using the file: {file_path}")
+
+def manage_qcow2_image(image_path, mount_point, partition):
+    """
+    Mounts and unmounts a QCOW2 image using qemu-nbd and mounts it to a specified directory.
+
+    :param image_path: Path to the QCOW2 image file.
+    :param mount_point: Directory where the partition will be mounted.
+    :param partition: Partition number to mount.
+    """
+    try:
+        os.makedirs(mount_point, exist_ok=True)
+        run_command(['sudo', 'modprobe', 'nbd', 'max_part=8'])
+        find_and_kill_process(image_path)
+        time.sleep(5)
+        run_command(['sudo', 'qemu-nbd', '--format=raw', '--connect=/dev/nbd0', image_path])
+        return run_command(['sudo', 'mount', f'/dev/nbd0p{partition}', mount_point])
+    finally:
+        run_command(['sudo', 'umount', f'/dev/nbd0p{partition}', mount_point])
+        run_command(['sudo', 'qemu-nbd', '--disconnect', '/dev/nbd0'])
+        print(f"Partition /dev/nbd0p{partition} unmounted and NBD device disconnected")

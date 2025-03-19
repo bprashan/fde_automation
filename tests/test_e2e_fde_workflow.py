@@ -4,10 +4,11 @@ import pytest
 import random
 import string
 import subprocess
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '../libs'))
 from fde import *
 from kbs import run_kbs, check_error_messages, get_docker_logs
-from utils import set_environment_variables, run_command, get_ip_address
+from utils import set_environment_variables, run_command, get_ip_address, manage_qcow2_image
 from kms import login_to_vault
 
 @pytest.mark.usefixtures("setup_environment")
@@ -35,11 +36,11 @@ class TestClass:
         return verify_td_encrypted_image()
 
     def run_command_with_unset_env(self, cmd, unset_var):
+        """Runs a command with a specified environment variable unset."""
         original_env = os.environ.copy()
         if unset_var in os.environ:
             del os.environ[unset_var]
         try:
-            print("before runing the subpriocess")
             result = subprocess.Popen(cmd, text=True, env=os.environ)
             return result.returncode
         finally:
@@ -132,6 +133,7 @@ class TestClass:
             assert not result, f"Iteration {i+1}: Expected an error when trying to login with invalid token '{invalid_token}'"
 
     def test_fde_workflow_with_missing_parameters_retrieve_encryption_key(self):
+        """Tests the FDE workflow with missing parameters for retrieving the encryption key."""
         cmd = [
             './retrieve_encryption_key.sh',
             '-k', os.environ.get("KBS_ENV", ""),
@@ -148,6 +150,7 @@ class TestClass:
             assert returncode != 0, "Retrieve encryption key command unexpectedly succeeded with {unset_var} unset"
 
     def test_fde_workflow_with_missing_parameters_encrypt_base_image(self):
+        """Tests the FDE workflow with missing parameters for encrypting the base image."""
         cmd = [
             'sudo', 'tools/image/fde-encrypt_image.sh',
             '-k', os.environ.get("TMP_FDE_KEY", ""),
@@ -160,6 +163,7 @@ class TestClass:
             assert returncode != 0, "Encrypt base image command unexpectedly succeeded with {unset_var} unset"
 
     def test_fde_workflow_with_invalid_quote(self):
+        """Tests the FDE workflow with an invalid quote."""
         try:
             assert run_kbs(), "Failed to run KBS"
             self.encrypt_base_image()
@@ -174,6 +178,7 @@ class TestClass:
             set_environment_variables("QUOTE", original_quote)
 
     def test_fde_workflow_with_invalid_encryption_key(self):
+        """Tests the FDE workflow with an invalid encryption key."""
         try:
             assert run_kbs(), "Failed to run KBS"
             self.encrypt_base_image()
@@ -188,6 +193,7 @@ class TestClass:
             set_environment_variables("FDE_KEY", original_fde_key)
 
     def test_fde_workflow_with_incorrect_cred_encrypted_image(self):
+        """Tests the FDE workflow with incorrect credentials for the encrypted image."""
         assert run_kbs(), "Failed to run KBS"
         self.encrypt_base_image()
         quote_set_success, keys_set_success = self.fetch_td_quote_and_encryption_keys()
@@ -198,6 +204,7 @@ class TestClass:
         assert not verify_td_encrypted_image("sshpass -p 123456 ssh -o StrictHostKeyChecking=no -p 10022 root123@localhost 'sudo blkid'"), "Expecting an error when login to encrypted image with invalid credentials."
 
     def test_fde_workflow_with_concurrent_encryption_attempt(self):
+        """Tests the FDE workflow with concurrent encryption attempts."""
         assert run_kbs(), "Failed to run KBS"
         tmp_fde_key = generate_tmp_fde_key()
         results = {}
@@ -207,3 +214,43 @@ class TestClass:
         print(results)
         success_count = sum(1 for result in results.values() if result == 0)
         assert success_count != 1, "Expected exactly one successful run, but found {success_count}"
+
+    def test_fde_workflow_with_recover_fde_key_loss(self):
+        """Tests the FDE workflow with recovery from FDE key loss."""
+        # Run the KBS service
+        assert run_kbs(), "Failed to run KBS"
+        
+        # Encrypt the base image
+        self.encrypt_base_image()
+        
+        # Fetch TD quote and encryption keys
+        quote_set_success, keys_set_success = self.fetch_td_quote_and_encryption_keys()
+        assert quote_set_success, "Failed to generate TD measurement"
+        assert keys_set_success, "Failed to generate encryption keys"
+        
+        # Verify the encrypted image
+        assert self.encrypt_and_verify_image(), "TD encrypted image verification failed"
+
+        print(f"current FDE KEY : {os.environ["FDE_KEY"]}")
+        # Retrieve the FDE key again to ensure it matches the original
+        set_environment_variables(data=retrieve_encryption_key())
+        print(f"new FDE KEY : {os.environ["FDE_KEY"]}")
+        assert self.encrypt_and_verify_image(), "TD encrypted image verification failed"
+
+    def test_fde_workflow_with_verify_encrypt_image_at_rest(self):
+        """Tests the FDE workflow with verification of the encrypted image at rest."""
+        # Run the KBS service
+        assert run_kbs(), "Failed to run KBS"
+        
+        # Encrypt the base image
+        self.encrypt_base_image()
+        
+        # Fetch TD quote and encryption keys
+        quote_set_success, keys_set_success = self.fetch_td_quote_and_encryption_keys()
+        assert quote_set_success, "Failed to generate TD measurement"
+        assert keys_set_success, "Failed to generate encryption keys"
+        
+        # Manage the QCOW2 image and check for specific content in the output
+        result = manage_qcow2_image('tools/image/td-guest-ubuntu-24.04-encrypted.img', 'rootfs', 1)
+        expected_text = "unknown filesystem type 'crypto_LUKS'"
+        assert expected_text in result, "Expected encrypted image cannot be mounted directly"
